@@ -21,25 +21,82 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 // 设置相机位置
-camera.position.z = 30;
+// camera.position.z = 30;
 
-// 创建渲染器
-const renderer = new THREE.WebGLRenderer();
+// 将相机放入场景去
+// 0.01是因为使用了轨道
+camera.position.set(0, 0, 0.01);
+const useBox = () => {
+  const materials: THREE.MeshBasicMaterial[] = [];
 
-// 设置渲染器大小
-renderer.setSize(window.innerWidth, window.innerHeight);
+  const texture_right = new THREE.TextureLoader().load(
+    "./images/livingRoom/living_r.jpg"
+  );
+  materials.push(new THREE.MeshBasicMaterial({ map: texture_right }));
 
-// 创建几何体
-const geometry = new THREE.BoxGeometry(10, 10, 10);
+  const texture_left = new THREE.TextureLoader().load(
+    "./images/livingRoom/living_l.jpg"
+  );
+  materials.push(new THREE.MeshBasicMaterial({ map: texture_left }));
 
-// 几何体材质
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  const texture_up = new THREE.TextureLoader().load(
+    "./images/livingRoom/living_u.jpg"
+  );
+  materials.push(new THREE.MeshBasicMaterial({ map: texture_up }));
 
-// 创建网格模型
-const cube = new THREE.Mesh(geometry, material);
+  const texture_down = new THREE.TextureLoader().load(
+    "./images/livingRoom/living_d.jpg"
+  );
+  materials.push(new THREE.MeshBasicMaterial({ map: texture_down }));
 
-// 将网格模型添加到场景中
-scene.add(cube);
+  const texture_front = new THREE.TextureLoader().load(
+    "./images/livingRoom/living_f.jpg"
+  );
+  materials.push(new THREE.MeshBasicMaterial({ map: texture_front }));
+
+  const texture_back = new THREE.TextureLoader().load(
+    "./images/livingRoom/living_b.jpg"
+  );
+  materials.push(new THREE.MeshBasicMaterial({ map: texture_back }));
+
+  // 创建几何体
+  const geometry = new THREE.BoxGeometry(10, 10, 10);
+
+  // 几何体材质
+  // const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+
+  // 创建网格模型
+  const cube = new THREE.Mesh(geometry, materials);
+
+  // 返转贴纸
+  cube.geometry.scale(1, 1, -1);
+
+  // 将网格模型添加到场景中
+  scene.add(cube);
+};
+
+const useSphere = () => {
+  const geometry = new THREE.SphereGeometry(1, 50, 50);
+  geometry.scale(1, 1, -1);
+  const texture = new THREE.TextureLoader().load("./images/scene.jpeg");
+  const sphereMaterial = new THREE.MeshBasicMaterial({ map: texture });
+  const sphere = new THREE.Mesh(geometry, sphereMaterial);
+  scene.add(sphere);
+};
+
+// useBox();
+useSphere();
+
+window.addEventListener("resize", () => {
+  // 更新摄像头
+  camera.aspect = window.innerWidth / window.innerHeight;
+  // 更新摄像头的投影矩阵
+  camera.updateProjectionMatrix();
+  // 更新渲染器
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  // 设置渲染器的像素比
+  renderer.setPixelRatio(window.devicePixelRatio);
+});
 
 // 轨道控制器对象
 let controls: OrbitControls;
@@ -50,6 +107,11 @@ const axesHelper = new THREE.AxesHelper(20);
 // 将坐标辅助器添加到场景中
 scene.add(axesHelper);
 
+// 创建渲染器
+const renderer = new THREE.WebGLRenderer();
+
+// 设置渲染器大小
+renderer.setSize(window.innerWidth, window.innerHeight);
 const render = () => {
   renderer.render(scene, camera);
   requestAnimationFrame(render);
