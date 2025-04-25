@@ -3,6 +3,8 @@
 </template>
 
 <script setup lang="ts">
+import gsap from "gsap";
+import * as dat from "dat.gui";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { onMounted, ref } from "vue";
@@ -21,12 +23,16 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 // 设置相机位置
-// camera.position.z = 30;
+camera.position.z = 30;
 
-// 将相机放入场景去
-// 0.01是因为使用了轨道
-camera.position.set(0, 0, 0.01);
+const useInsertCamera = () => {
+  // 将相机放入场景去
+  // 0.01是因为使用了轨道
+  camera.position.set(0, 0, 0.01);
+};
+
 const useBox = () => {
+  useInsertCamera();
   const materials: THREE.MeshBasicMaterial[] = [];
 
   const texture_right = new THREE.TextureLoader().load(
@@ -76,6 +82,7 @@ const useBox = () => {
 };
 
 const useSphere = () => {
+  useInsertCamera();
   const geometry = new THREE.SphereGeometry(1, 50, 50);
   geometry.scale(1, 1, -1);
   const texture = new THREE.TextureLoader().load("./images/scene.jpeg");
@@ -84,8 +91,24 @@ const useSphere = () => {
   scene.add(sphere);
 };
 
+const useSimple = () => {
+  const geometry = new THREE.BoxGeometry(10, 10, 10);
+  const v3 = new THREE.Vector3(0, 0, 0);
+  const e3 = new THREE.Euler(10, 0, 0);
+  // 几何体材质
+  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  // 创建网格模型
+  const cube = new THREE.Mesh(geometry, material);
+  cube.position.copy(v3);
+  cube.rotation.copy(e3);
+  // 将网格模型添加到场景中
+  scene.add(cube);
+  cube.geometry.scale(1, 1, -1);
+  return cube;
+};
+const cube = useSimple();
 // useBox();
-useSphere();
+// useSphere();
 
 window.addEventListener("resize", () => {
   // 更新摄像头
@@ -112,7 +135,107 @@ const renderer = new THREE.WebGLRenderer();
 
 // 设置渲染器大小
 renderer.setSize(window.innerWidth, window.innerHeight);
+
+// gsap.to(cube.position, {
+//   x: 5,
+//   duration: 2,
+// });
+// gsap.to(cube.position, {
+//   y: 5,
+//   duration: 1,
+// });
+// gsap.to(cube.rotation, {
+//   z: 5,
+//   duration: 2,
+// });
+
+// 图形化控制界面
+const gui = new dat.GUI();
+// gui.add(cube.position, "x", 0, 10).name("x坐标").min(-5).max(5).step(0.1);
+// gui.add(cube.position, "y", 0, 10).name("y坐标").min(-5).max(5).step(0.1);
+// gui.add(cube.position, "z", 0, 10).name("z坐标").min(-5).max(5).step(0.1);
+// gui
+//   .addColor({ color: 0x00ff00 }, "color")
+//   .name("修改颜色")
+//   .onChange((e) => {
+//     cube.material.color = new THREE.Color(e);
+//   });
+const boxFolder = gui.addFolder("立方体属性");
+boxFolder.add(cube.position, "x", 0, 10).name("x坐标").min(-5).max(5).step(0.1);
+boxFolder.add(cube.position, "y", 0, 10).name("y坐标").min(-5).max(5).step(0.1);
+boxFolder.add(cube.position, "z", 0, 10).name("z坐标").min(-5).max(5).step(0.1);
+boxFolder.add(cube.rotation, "x", 0, 10).name("x旋转").min(-5).max(5).step(0.1);
+boxFolder.add(cube.rotation, "y", 0, 10).name("y旋转").min(-5).max(5).step(0.1);
+boxFolder.add(cube.rotation, "z", 0, 10).name("z旋转").min(-5).max(5).step(0.1);
+boxFolder
+  .addColor({ color: 0x00ff00 }, "color")
+  .name("修改颜色")
+  .onChange((e) => {
+    cube.material.color = new THREE.Color(e);
+  });
+
+const params = {
+  visible: true,
+  moveAnimation: () => {
+    gsap.to(cube.position, { x: 5, duration: 2 });
+  },
+};
+boxFolder
+  .add(params, "visible")
+  .name("显示/隐藏")
+  .onChange((e) => {
+    cube.visible = e;
+  });
+boxFolder.add(params, "moveAnimation").name("移动动画");
+boxFolder.open();
+
+const cameraFolder = gui.addFolder("相机属性");
+cameraFolder
+  .add(camera.position, "x", 0, 10)
+  .name("x坐标")
+  .min(-30)
+  .max(30)
+  .step(0.1);
+cameraFolder
+  .add(camera.position, "y", 0, 10)
+  .name("y坐标")
+  .min(-30)
+  .max(30)
+  .step(0.1);
+cameraFolder
+  .add(camera.position, "z", 0, 10)
+  .name("z坐标")
+  .min(-30)
+  .max(30)
+  .step(0.1);
+cameraFolder
+  .add(camera.rotation, "x")
+  .name("相机旋转x轴")
+  .min(-5)
+  .max(5)
+  .step(0.1);
+cameraFolder
+  .add(camera.rotation, "y")
+  .name("相机旋转y轴")
+  .min(-5)
+  .max(5)
+  .step(0.1);
+cameraFolder
+  .add(camera.rotation, "z")
+  .name("相机旋转z轴")
+  .min(-5)
+  .max(5)
+  .step(0.1);
+
+cameraFolder.open();
+
 const render = () => {
+  // cube.position.x += 0.01;
+  // cube.rotation.x += 0.01;
+  // if (cube.position.x > 5) {
+  //   cube.position.x = 0;
+  //   cube.rotation.x = 0;
+  // }
   renderer.render(scene, camera);
   requestAnimationFrame(render);
 };
