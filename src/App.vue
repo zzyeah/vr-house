@@ -1,5 +1,12 @@
 <template>
   <div ref="container" class="container"></div>
+  <!-- 信息点弹出层 -->
+  <div class="tooltip-box" :style="tooltipPosition" ref="tooltipBox">
+    <div class="wrapper">
+      <div class="names">标题: {{ tooltipContent.name }}</div>
+      <div class="explain">说明: {{ tooltipContent.description }}</div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -10,6 +17,12 @@ import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { onMounted, ref } from "vue";
 
 const container = ref<HTMLElement | null>(null);
+const tooltipBox = ref<HTMLElement | null>(null);
+const tooltipPosition = ref({
+  top: "-100%",
+  left: "-100%",
+});
+const tooltipContent = ref<{ [key: string]: any }>({});
 
 // 初始化场景
 const scene = new THREE.Scene();
@@ -158,7 +171,25 @@ const useBox = () => {
     }
   });
 
-  return cube;
+  // 创建信息点
+  const informationTexture = new THREE.TextureLoader().load("./images/dot.png");
+  const infomationSpriteMaterial = new THREE.SpriteMaterial({
+    map: informationTexture,
+    transparent: true,
+  });
+  const infomationSprite = new THREE.Sprite(infomationSpriteMaterial);
+  const infomationSpritePosition = new THREE.Vector3(1.5, -0.1, -3);
+  infomationSprite.position.copy(infomationSpritePosition);
+  infomationSprite.scale.set(0.2, 0.2, 0.2);
+  infomationSprite.userData = {
+    type: "information",
+    name: "信息点",
+    description: "这是一个信息点",
+  };
+  poiObjs.push(infomationSprite);
+  scene.add(infomationSprite);
+
+  return { cube, poiObjs };
 };
 
 const useSphere = () => {
@@ -188,7 +219,7 @@ const useSimple = () => {
   return cube;
 };
 // const cube = useSimple();
-const cube = useBox();
+const { cube, poiObjs } = useBox();
 // const cube = useSphere();
 
 window.addEventListener("resize", () => {
@@ -226,12 +257,12 @@ boxFolder.add(cube.position, "z", 0, 10).name("z坐标").min(-5).max(5).step(0.1
 boxFolder.add(cube.rotation, "x", 0, 10).name("x旋转").min(-5).max(5).step(0.1);
 boxFolder.add(cube.rotation, "y", 0, 10).name("y旋转").min(-5).max(5).step(0.1);
 boxFolder.add(cube.rotation, "z", 0, 10).name("z旋转").min(-5).max(5).step(0.1);
-boxFolder
-  .addColor({ color: 0x00ff00 }, "color")
-  .name("修改颜色")
-  .onChange((e) => {
-    cube.material.color = new THREE.Color(e);
-  });
+// boxFolder
+//   .addColor({ color: 0x00ff00 }, "color")
+//   .name("修改颜色")
+//   .onChange((e) => {
+//     cube.material.color = new THREE.Color(e);
+//   });
 
 const params = {
   visible: true,
@@ -292,15 +323,77 @@ cameraFolder.add(params, "cameraAnimation").name("相机动画");
 cameraFolder.open();
 
 const render = () => {
-  // cube.position.x += 0.01;
-  // cube.rotation.x += 0.01;
-  // if (cube.position.x > 5) {
-  //   cube.position.x = 0;
-  //   cube.rotation.x = 0;
-  // }
   renderer.render(scene, camera);
   requestAnimationFrame(render);
 };
+
+function tooltipShow(e: MouseEvent) {
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  // 将鼠标位置归一化为设备坐标，x 和 y 方向的取值范围是 [-1, 1]
+  pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  // 通过摄像机和鼠标位置更新射线
+  raycaster.setFromCamera(pointer, camera);
+  // 计算物体和射线的交点
+  const intersects = raycaster.intersectObjects(poiObjs);
+  if (intersects.length > 0) {
+    if (intersects[0].object.userData.type === "information") {
+      // 需要设置弹出层的 left 和 top
+      // 所以需要获取鼠标位置
+      // 需要将三维空间中的坐标转换为二维屏幕坐标
+      // Vector3 对象的 project 方法可以将三维坐标转换为 NDC 坐标
+      // NDC 坐标是 [-1, 1] 范围内的坐标系
+      // 所以需要将 NDC 坐标信息转换为屏幕坐标
+      // 示例
+      // const vector = new THREE.Vector3(10, 20, 30);
+      // vector.project(camera);
+      // 通过下方公式将 NDC 坐标转换为屏幕坐标
+      // const x = (vector.x + 1) * (width(默认全屏canvas) / 2);
+      // const y = -(vector.y - 1) * (height / 2);
+
+      const element = e.target as HTMLElement;
+      const elementWidth = element.clientWidth / 2;
+      const elementHeight = element.clientHeight / 2;
+      const worldVector = new THREE.Vector3(
+        intersects[0].object.position.x,
+        intersects[0].object.position.y,
+        intersects[0].object.position.z
+      );
+      const position = worldVector.project(camera);
+      let left = Math.round(
+        elementWidth * position.x +
+          elementWidth -
+          tooltipBox.value!.clientWidth / 2
+      );
+      let top = Math.round(
+        elementHeight * -position.y +
+          elementHeight -
+          tooltipBox.value!.clientHeight / 2
+      );
+      tooltipPosition.value = {
+        left: `${left}px`,
+        top: `${top}px`,
+      };
+
+      tooltipContent.value = intersects[0].object.userData;
+    }
+  } else {
+    handleTooltipHide(e);
+  }
+}
+
+function handleTooltipHide(e: MouseEvent) {
+  e.preventDefault();
+  tooltipPosition.value = {
+    left: "-100%",
+    top: "-100%",
+  };
+  tooltipContent.value = {
+    name: "",
+    description: "",
+  };
+}
 
 onMounted(() => {
   if (container.value) {
@@ -345,6 +438,9 @@ onMounted(() => {
       },
       false
     );
+
+    renderer.domElement.addEventListener("mousemove", tooltipShow);
+    tooltipBox.value!.addEventListener("mouseleave", handleTooltipHide);
   }
 });
 </script>
@@ -359,5 +455,32 @@ onMounted(() => {
 .container {
   width: 100%;
   height: 100%;
+}
+
+.tooltip-box {
+  position: absolute;
+  padding: 0px 0 40px 0;
+  line-height: 30px;
+  border-radius: 4px;
+  color: #fff;
+  z-index: 100;
+  cursor: pointer;
+  .wrapper {
+    position: relative;
+    width: 240px;
+    max-height: 200px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    .name {
+      width: 100%;
+      padding: 6px 0;
+    }
+    .description {
+      width: 100%;
+      max-height: 100px;
+      font-size: 14px;
+      overflow-y: auto;
+    }
+  }
 }
 </style>
