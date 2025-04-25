@@ -107,6 +107,57 @@ const useBox = () => {
   balconyCube.rotation.copy(balconyE3);
   scene.add(balconyCube);
 
+  // 定义阳台导航的canvas
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 1024;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "rgba(100, 100, 100, 0.7)";
+  ctx.fillRect(0, 256, canvas.width, canvas.height / 2);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "bold 200px Arial";
+  ctx.fillStyle = "white";
+  ctx.fillText("阳台", canvas.width / 2, canvas.height / 2);
+
+  const balconySpriteTexture = new THREE.CanvasTexture(canvas);
+
+  // 创建阳台导航
+  const balconySpriteMaterial = new THREE.SpriteMaterial({
+    map: balconySpriteTexture,
+    transparent: true,
+  });
+  const balconySprite = new THREE.Sprite(balconySpriteMaterial);
+  const balconySpritePosition = new THREE.Vector3(0, 0, -4);
+  balconySprite.position.copy(balconySpritePosition);
+  scene.add(balconySprite);
+
+  const poiObjs: THREE.Sprite[] = [];
+  poiObjs.push(balconySprite);
+
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+
+  window.addEventListener("click", (e: MouseEvent) => {
+    e.preventDefault();
+    // 将鼠标位置归一化为设备坐标，x 和 y 方向的取值范围是 [-1, 1]
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    // 通过摄像机和鼠标位置更新射线
+    raycaster.setFromCamera(pointer, camera);
+    // 计算物体和射线的交点
+    const intersects = raycaster.intersectObjects(poiObjs);
+    if (intersects.length > 0) {
+      // 有交叉点
+      gsap.to(camera.position, {
+        duration: 1,
+        x: 0,
+        y: 0,
+        z: -10,
+      });
+    }
+  });
+
   return cube;
 };
 
@@ -166,30 +217,8 @@ const renderer = new THREE.WebGLRenderer();
 // 设置渲染器大小
 renderer.setSize(window.innerWidth, window.innerHeight);
 
-// gsap.to(cube.position, {
-//   x: 5,
-//   duration: 2,
-// });
-// gsap.to(cube.position, {
-//   y: 5,
-//   duration: 1,
-// });
-// gsap.to(cube.rotation, {
-//   z: 5,
-//   duration: 2,
-// });
-
 // 图形化控制界面
 const gui = new dat.GUI();
-// gui.add(cube.position, "x", 0, 10).name("x坐标").min(-5).max(5).step(0.1);
-// gui.add(cube.position, "y", 0, 10).name("y坐标").min(-5).max(5).step(0.1);
-// gui.add(cube.position, "z", 0, 10).name("z坐标").min(-5).max(5).step(0.1);
-// gui
-//   .addColor({ color: 0x00ff00 }, "color")
-//   .name("修改颜色")
-//   .onChange((e) => {
-//     cube.material.color = new THREE.Color(e);
-//   });
 const boxFolder = gui.addFolder("立方体属性");
 boxFolder.add(cube.position, "x", 0, 10).name("x坐标").min(-5).max(5).step(0.1);
 boxFolder.add(cube.position, "y", 0, 10).name("y坐标").min(-5).max(5).step(0.1);
