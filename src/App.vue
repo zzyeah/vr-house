@@ -23,7 +23,7 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 // 设置相机位置
-camera.position.z = 30;
+// camera.position.z = 30;
 
 const useInsertCamera = () => {
   // 将相机放入场景去
@@ -65,6 +65,7 @@ const useBox = () => {
   );
   materials.push(new THREE.MeshBasicMaterial({ map: texture_back }));
 
+  // 客厅立方体
   // 创建几何体
   const geometry = new THREE.BoxGeometry(10, 10, 10);
 
@@ -79,6 +80,34 @@ const useBox = () => {
 
   // 将网格模型添加到场景中
   scene.add(cube);
+
+  // 阳台立方体
+  const roomPrefix = "balcony";
+  const arr = [
+    `${roomPrefix}_r`,
+    `${roomPrefix}_l`,
+    `${roomPrefix}_u`,
+    `${roomPrefix}_d`,
+    `${roomPrefix}_f`,
+    `${roomPrefix}_b`,
+  ];
+  const balconyMaterials: THREE.MeshBasicMaterial[] = [];
+  arr.forEach((item) => {
+    const texture = new THREE.TextureLoader().load(
+      `./images/balcony/${item}.jpg`
+    );
+    balconyMaterials.push(new THREE.MeshBasicMaterial({ map: texture }));
+  });
+  const balconyGeometry = new THREE.BoxGeometry(10, 10, 10);
+  const balconyV3 = new THREE.Vector3(0, 0, -10);
+  const balconyE3 = new THREE.Euler(0, 0, 0);
+  const balconyCube = new THREE.Mesh(balconyGeometry, balconyMaterials);
+  balconyCube.geometry.scale(1, 1, -1);
+  balconyCube.position.copy(balconyV3);
+  balconyCube.rotation.copy(balconyE3);
+  scene.add(balconyCube);
+
+  return cube;
 };
 
 const useSphere = () => {
@@ -89,6 +118,7 @@ const useSphere = () => {
   const sphereMaterial = new THREE.MeshBasicMaterial({ map: texture });
   const sphere = new THREE.Mesh(geometry, sphereMaterial);
   scene.add(sphere);
+  return sphere;
 };
 
 const useSimple = () => {
@@ -106,9 +136,9 @@ const useSimple = () => {
   cube.geometry.scale(1, 1, -1);
   return cube;
 };
-const cube = useSimple();
-// useBox();
-// useSphere();
+// const cube = useSimple();
+const cube = useBox();
+// const cube = useSphere();
 
 window.addEventListener("resize", () => {
   // 更新摄像头
@@ -179,6 +209,9 @@ const params = {
   moveAnimation: () => {
     gsap.to(cube.position, { x: 5, duration: 2 });
   },
+  cameraAnimation: () => {
+    gsap.to(camera.position, { z: -10, x: 0, y: 0, duration: 2 });
+  },
 };
 boxFolder
   .add(params, "visible")
@@ -226,7 +259,7 @@ cameraFolder
   .min(-5)
   .max(5)
   .step(0.1);
-
+cameraFolder.add(params, "cameraAnimation").name("相机动画");
 cameraFolder.open();
 
 const render = () => {
@@ -243,12 +276,46 @@ const render = () => {
 onMounted(() => {
   if (container.value) {
     // 添加轨道控制器
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.update();
+    // controls = new OrbitControls(camera, renderer.domElement);
+    // controls.enableDamping = true;
+    // controls.update();
 
     container.value.appendChild(renderer.domElement);
     render();
+
+    let isMouseDown = false;
+    container.value.addEventListener(
+      "mousedown",
+      () => {
+        isMouseDown = true;
+      },
+      false
+    );
+    container.value.addEventListener(
+      "mouseup",
+      () => {
+        isMouseDown = false;
+      },
+      false
+    );
+    container.value.addEventListener(
+      "mouseout",
+      () => {
+        isMouseDown = false;
+      },
+      false
+    );
+
+    container.value.addEventListener(
+      "mousemove",
+      (e) => {
+        if (!isMouseDown) return;
+        camera.rotation.x += e.movementY * 0.01;
+        camera.rotation.y += e.movementX * 0.01;
+        camera.rotation.order = "YXZ";
+      },
+      false
+    );
   }
 });
 </script>
