@@ -28,11 +28,10 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-const useInsertCamera = () => {
-  // 将相机放入场景去
-  // 0.01是因为使用了轨道
-  camera.position.set(0, 0, 0.01);
-};
+// 将相机放入场景去
+// 0.01是因为使用了轨道
+camera.position.set(0, 0, 0.01);
+
 // 创建渲染器
 const container = ref<HTMLElement | null>(null);
 const renderer = new THREE.WebGLRenderer();
