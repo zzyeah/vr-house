@@ -70,7 +70,7 @@ function tooltipShow(e: MouseEvent, spriteList: THREE.Sprite[]) {
       // vector.project(camera);
       // 通过下方公式将 NDC 坐标转换为屏幕坐标
       // const x = (vector.x + 1) * (width(默认全屏canvas) / 2);
-      // const y = -(vector.y - 1) * (height / 2);
+      // const y = (-vector.y + 1) * (height(默认全屏canvas) / 2);
 
       const element = e.target as HTMLElement;
       const elementWidth = element.clientWidth / 2;
